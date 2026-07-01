@@ -9,10 +9,10 @@ First prototype for loading, validating, summarizing, randomly assigning, scorin
 - Prints a clean summary with counts, room capacity statistics, class option counts, and distribution type totals.
 - Validates parsed ITC problem structure before later optimization work.
 - Generates a seeded random timetable solution with one assignment per class.
-- Scores a timetable solution with choice penalties, room hard constraints, room unavailable hard constraints, and required `NotOverlap` distributions.
+- Scores a timetable solution with choice penalties, room hard constraints, room unavailable hard constraints, and required `NotOverlap`, `SameTime`, `SameDays`, `DifferentDays`, `SameRoom`, `Precedence`, and `SameAttendees` distributions.
 - Runs a simple baseline genetic algorithm with tournament selection, uniform crossover, mutation, and elitism.
 - Writes paper-oriented experiment outputs for GA runs under `output/runs/<timestamp>/`.
-- Reports unsupported required distributions as hard violations and unsupported non-required distributions as soft constraint reports.
+- Reports remaining unsupported required distribution types as hard violations and unsupported non-required distributions as soft constraint reports.
 - Does not include a database, frontend, AI agent, custom GA, or dynamic fitness functions yet.
 
 ## Requirements

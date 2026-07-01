@@ -12,95 +12,238 @@ public final class AppRunSettings {
     /*
      * IntelliJ-friendly run settings.
      *
-     * How it works:
-     * - If IntelliJ Program Arguments is empty, App.java will use this class.
-     * - If Program Arguments is not empty, command-line arguments still win.
+     * If IntelliJ Program Arguments is empty, App.java uses this class.
+     * If Program Arguments is not empty, command-line arguments still win.
      */
     public static final boolean USE_SETTINGS_WHEN_NO_ARGUMENTS = true;
 
     /*
-     * Dataset settings.
-     * Change these when you want to test another ITC dataset.
+     * Change only this line most of the time.
      */
-    public static final String PROFILE_NAME = "tg-spr18 baseline GA";
-    public static final String DATASET_NAME = "tg-spr18";
-    public static final Path DATASET_FILE = Path.of("Dataset", "tg-spr18_postcompetition2.xml");
+    public static final RunProfile ACTIVE_PROFILE = RunProfile.BASELINE_MEDIUM;
 
-    /*
-     * Action flags.
-     * You can enable more than one if needed.
-     */
-    public static final boolean SUMMARY = false;
-    public static final boolean VALIDATE = false;
-    public static final boolean RANDOM_SOLUTION = false;
-    public static final boolean SCORE_RANDOM_SOLUTION = false;
-    public static final boolean RUN_GA = true;
+    public enum RunProfile {
 
-    /*
-     * GA settings.
-     * Change these for your experiments.
-     */
-    public static final int POPULATION_SIZE = 50;
-    public static final int GENERATIONS = 100;
-    public static final double MUTATION_RATE = 0.05;
-    public static final long SEED = 42L;
+        VALIDATE_ONLY(
+                "tg-spr18 validate only",
+                "tg-spr18",
+                Path.of("Dataset", "tg-spr18_postcompetition2.xml"),
+                true,
+                true,
+                false,
+                false,
+                false,
+                50,
+                100,
+                0.05,
+                42L
+        ),
+
+        RANDOM_SOLUTION_SCORE(
+                "tg-spr18 random solution score",
+                "tg-spr18",
+                Path.of("Dataset", "tg-spr18_postcompetition2.xml"),
+                true,
+                true,
+                false,
+                true,
+                false,
+                50,
+                100,
+                0.05,
+                42L
+        ),
+
+        BASELINE_SMALL(
+                "tg-spr18 baseline small",
+                "tg-spr18",
+                Path.of("Dataset", "tg-spr18_postcompetition2.xml"),
+                false,
+                false,
+                false,
+                false,
+                true,
+                25,
+                100,
+                0.05,
+                42L
+        ),
+
+        BASELINE_MEDIUM(
+                "tg-spr18 baseline medium",
+                "tg-spr18",
+                Path.of("Dataset", "tg-spr18_postcompetition2.xml"),
+                false,
+                false,
+                false,
+                false,
+                true,
+                50,
+                100,
+                0.05,
+                42L
+        ),
+
+        BASELINE_LARGE(
+                "tg-spr18 baseline large",
+                "tg-spr18",
+                Path.of("Dataset", "tg-spr18_postcompetition2.xml"),
+                false,
+                false,
+                false,
+                false,
+                true,
+                100,
+                100,
+                0.05,
+                42L
+        ),
+
+        BASELINE_LONG(
+                "tg-spr18 baseline long",
+                "tg-spr18",
+                Path.of("Dataset", "tg-spr18_postcompetition2.xml"),
+                false,
+                false,
+                false,
+                false,
+                true,
+                100,
+                500,
+                0.05,
+                42L
+        ),
+
+        HIGH_MUTATION_TEST(
+                "tg-spr18 high mutation test",
+                "tg-spr18",
+                Path.of("Dataset", "tg-spr18_postcompetition2.xml"),
+                false,
+                false,
+                false,
+                false,
+                true,
+                50,
+                100,
+                0.10,
+                42L
+        ),
+
+        LOW_MUTATION_TEST(
+                "tg-spr18 low mutation test",
+                "tg-spr18",
+                Path.of("Dataset", "tg-spr18_postcompetition2.xml"),
+                false,
+                false,
+                false,
+                false,
+                true,
+                50,
+                100,
+                0.02,
+                42L
+        );
+
+        private final String profileName;
+        private final String datasetName;
+        private final Path datasetFile;
+        private final boolean summary;
+        private final boolean validate;
+        private final boolean randomSolution;
+        private final boolean scoreRandomSolution;
+        private final boolean runGa;
+        private final int populationSize;
+        private final int generations;
+        private final double mutationRate;
+        private final long seed;
+
+        RunProfile(
+                String profileName,
+                String datasetName,
+                Path datasetFile,
+                boolean summary,
+                boolean validate,
+                boolean randomSolution,
+                boolean scoreRandomSolution,
+                boolean runGa,
+                int populationSize,
+                int generations,
+                double mutationRate,
+                long seed
+        ) {
+            this.profileName = profileName;
+            this.datasetName = datasetName;
+            this.datasetFile = datasetFile;
+            this.summary = summary;
+            this.validate = validate;
+            this.randomSolution = randomSolution;
+            this.scoreRandomSolution = scoreRandomSolution;
+            this.runGa = runGa;
+            this.populationSize = populationSize;
+            this.generations = generations;
+            this.mutationRate = mutationRate;
+            this.seed = seed;
+        }
+    }
 
     public static String[] toCliArgs() {
+        RunProfile profile = ACTIVE_PROFILE;
+
         List<String> args = new ArrayList<>();
 
         args.add("--input");
-        args.add(DATASET_FILE.toString());
+        args.add(profile.datasetFile.toString());
 
-        if (SUMMARY) {
+        if (profile.summary) {
             args.add("--summary");
         }
 
-        if (VALIDATE) {
+        if (profile.validate) {
             args.add("--validate");
         }
 
-        if (RANDOM_SOLUTION) {
+        if (profile.randomSolution) {
             args.add("--random-solution");
         }
 
-        if (SCORE_RANDOM_SOLUTION) {
+        if (profile.scoreRandomSolution) {
             args.add("--score-random-solution");
         }
 
-        if (RUN_GA) {
+        if (profile.runGa) {
             args.add("--run-ga");
 
             args.add("--population");
-            args.add(Integer.toString(POPULATION_SIZE));
+            args.add(Integer.toString(profile.populationSize));
 
             args.add("--generations");
-            args.add(Integer.toString(GENERATIONS));
+            args.add(Integer.toString(profile.generations));
 
             args.add("--mutation-rate");
-            args.add(Double.toString(MUTATION_RATE));
-
-            args.add("--seed");
-            args.add(Long.toString(SEED));
-        } else {
-            args.add("--seed");
-            args.add(Long.toString(SEED));
+            args.add(Double.toString(profile.mutationRate));
         }
 
-        return args.toArray(String[]::new);
+        args.add("--seed");
+        args.add(Long.toString(profile.seed));
+
+        return args.toArray(new String[0]);
     }
 
     public static String describe() {
-        return "profile=" + PROFILE_NAME
-                + ", datasetName=" + DATASET_NAME
-                + ", datasetFile=" + DATASET_FILE
-                + ", summary=" + SUMMARY
-                + ", validate=" + VALIDATE
-                + ", randomSolution=" + RANDOM_SOLUTION
-                + ", scoreRandomSolution=" + SCORE_RANDOM_SOLUTION
-                + ", runGa=" + RUN_GA
-                + ", populationSize=" + POPULATION_SIZE
-                + ", generations=" + GENERATIONS
-                + ", mutationRate=" + MUTATION_RATE
-                + ", seed=" + SEED;
+        RunProfile profile = ACTIVE_PROFILE;
+
+        return "activeProfile=" + profile.name()
+                + ", profileName=" + profile.profileName
+                + ", datasetName=" + profile.datasetName
+                + ", datasetFile=" + profile.datasetFile
+                + ", summary=" + profile.summary
+                + ", validate=" + profile.validate
+                + ", randomSolution=" + profile.randomSolution
+                + ", scoreRandomSolution=" + profile.scoreRandomSolution
+                + ", runGa=" + profile.runGa
+                + ", populationSize=" + profile.populationSize
+                + ", generations=" + profile.generations
+                + ", mutationRate=" + profile.mutationRate
+                + ", seed=" + profile.seed;
     }
 }

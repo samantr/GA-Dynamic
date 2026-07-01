@@ -187,44 +187,81 @@ public final class ExperimentRunOutputWriter {
 
     private void writeBestSolutionAssignments(Path output, ParseResult problem, GAResult result) throws IOException {
         Map<String, ItcClass> classesById = new HashMap<>();
+
         for (ItcClass itcClass : problem.classes()) {
             classesById.put(itcClass.id(), itcClass);
         }
 
+        int timeWeight = problem.config().optimizationWeights().time();
+        int roomWeight = problem.config().optimizationWeights().room();
+
         try (BufferedWriter writer = Files.newBufferedWriter(output)) {
-            writer.write("classId,courseId,configId,subpartId,roomId,days,weeks,start,length,timePenalty,roomPenalty");
+            writer.write(
+                    "classId,courseId,configId,subpartId,roomId,days,weeks,start,length,"
+                            + "rawTimePenalty,timeWeight,weightedTimePenalty,"
+                            + "rawRoomPenalty,roomWeight,weightedRoomPenalty"
+            );
             writer.newLine();
+
             for (ClassAssignment assignment : result.bestSolution().assignments()) {
                 ItcClass itcClass = classesById.get(assignment.classId());
                 ClassTimeOption time = assignment.selectedTimeOption();
                 Optional<ClassRoomOption> room = assignment.selectedRoomOption();
 
+                long rawTimePenalty = time.penalty();
+                long weightedTimePenalty = rawTimePenalty * timeWeight;
+
+                long rawRoomPenalty = room.map(ClassRoomOption::penalty).orElse(0);
+                long weightedRoomPenalty = rawRoomPenalty * roomWeight;
+
                 writer.write(csv(assignment.classId()));
                 writer.write(",");
+
                 writer.write(csv(itcClass == null ? "" : itcClass.courseId()));
                 writer.write(",");
+
                 writer.write(csv(itcClass == null ? "" : itcClass.configId()));
                 writer.write(",");
+
                 writer.write(csv(itcClass == null ? "" : itcClass.subpartId()));
                 writer.write(",");
+
                 writer.write(csv(room.map(ClassRoomOption::roomId).orElse("")));
                 writer.write(",");
+
                 writer.write(csv(time.days()));
                 writer.write(",");
+
                 writer.write(csv(time.weeks()));
                 writer.write(",");
+
                 writer.write(Integer.toString(time.start()));
                 writer.write(",");
+
                 writer.write(Integer.toString(time.length()));
                 writer.write(",");
-                writer.write(Integer.toString(time.penalty()));
+
+                writer.write(Long.toString(rawTimePenalty));
                 writer.write(",");
-                writer.write(Integer.toString(room.map(ClassRoomOption::penalty).orElse(0)));
+
+                writer.write(Integer.toString(timeWeight));
+                writer.write(",");
+
+                writer.write(Long.toString(weightedTimePenalty));
+                writer.write(",");
+
+                writer.write(Long.toString(rawRoomPenalty));
+                writer.write(",");
+
+                writer.write(Integer.toString(roomWeight));
+                writer.write(",");
+
+                writer.write(Long.toString(weightedRoomPenalty));
+
                 writer.newLine();
             }
         }
     }
-
     private String csv(String value) {
         String safeValue = value == null ? "" : value;
         if (safeValue.contains(",") || safeValue.contains("\"") || safeValue.contains("\n") || safeValue.contains("\r")) {

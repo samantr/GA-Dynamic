@@ -9,7 +9,8 @@ public record ExperimentRunOutput(
         Path problemSummary,
         Path finalFitnessBreakdown,
         Path convergence,
-        Path bestSolutionAssignments
+        Path bestSolutionAssignments,
+        Path constraintViolations
 ) {
     public ExperimentRunOutput {
         Objects.requireNonNull(runDirectory, "runDirectory");
@@ -18,5 +19,6 @@ public record ExperimentRunOutput(
         Objects.requireNonNull(finalFitnessBreakdown, "finalFitnessBreakdown");
         Objects.requireNonNull(convergence, "convergence");
         Objects.requireNonNull(bestSolutionAssignments, "bestSolutionAssignments");
+        Objects.requireNonNull(constraintViolations, "constraintViolations");
     }
 }

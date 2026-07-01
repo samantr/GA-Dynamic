@@ -13,6 +13,7 @@ import com.gadynamicapp.itc.summary.DistributionTypeSummary;
 import com.gadynamicapp.itc.summary.ItcProblemSummary;
 import com.gadynamicapp.itc.summary.ItcProblemSummaryService;
 import com.gadynamicapp.itc.summary.RoomCapacitySummary;
+import com.gadynamicapp.itc.fitness.ConstraintViolation;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -42,12 +43,14 @@ public final class ExperimentRunOutputWriter {
         Path finalFitnessBreakdown = runDirectory.resolve("final_fitness_breakdown.json");
         Path convergence = runDirectory.resolve("convergence.csv");
         Path bestSolutionAssignments = runDirectory.resolve("best_solution_assignments.csv");
+        Path constraintViolations = runDirectory.resolve("constraint_violations.csv");
 
         writeRunConfig(runConfig, inputFile, problem, result, timestamp);
         writeProblemSummary(problemSummary, new ItcProblemSummaryService().summarize(problem));
         writeFinalFitnessBreakdown(finalFitnessBreakdown, result.bestFitness());
         writeConvergence(convergence, result);
         writeBestSolutionAssignments(bestSolutionAssignments, problem, result);
+        writeConstraintViolations(constraintViolations, result);
 
         return new ExperimentRunOutput(
                 runDirectory,
@@ -55,10 +58,10 @@ public final class ExperimentRunOutputWriter {
                 problemSummary,
                 finalFitnessBreakdown,
                 convergence,
-                bestSolutionAssignments
+                bestSolutionAssignments,
+                constraintViolations
         );
     }
-
     private Path createRunDirectory(ZonedDateTime timestamp) throws IOException {
         Path runsDirectory = Path.of("output", "runs");
         Files.createDirectories(runsDirectory);
@@ -446,6 +449,34 @@ public final class ExperimentRunOutputWriter {
 
         private JsonContext(JsonContextType type) {
             this.type = type;
+        }
+    }
+
+    private void writeConstraintViolations(Path output, GAResult result) throws IOException {
+        try (BufferedWriter writer = Files.newBufferedWriter(output)) {
+            writer.write("index,category,hard,penalty,message");
+            writer.newLine();
+
+            int index = 1;
+
+            for (ConstraintViolation violation : result.bestFitness().violations()) {
+                writer.write(Integer.toString(index));
+                writer.write(",");
+
+                writer.write(csv(violation.category()));
+                writer.write(",");
+
+                writer.write(Boolean.toString(violation.hard()));
+                writer.write(",");
+
+                writer.write(Long.toString(violation.penalty()));
+                writer.write(",");
+
+                writer.write(csv(violation.message()));
+
+                writer.newLine();
+                index++;
+            }
         }
     }
 }

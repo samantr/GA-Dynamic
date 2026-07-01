@@ -20,6 +20,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -79,99 +81,93 @@ public final class ExperimentRunOutputWriter {
             GAResult result,
             ZonedDateTime timestamp
     ) throws IOException {
-        StringBuilder json = new StringBuilder();
-        json.append("{\n");
-        appendJsonField(json, "inputFile", inputFile.toString(), true);
-        appendJsonField(json, "problemName", problem.config().name(), true);
-        appendJsonField(json, "populationSize", result.config().populationSize(), true);
-        appendJsonField(json, "generations", result.config().generations(), true);
-        appendJsonField(json, "mutationRate", result.config().mutationRate(), true);
-        appendJsonField(json, "tournamentSize", result.config().tournamentSize(), true);
-        appendJsonField(json, "elitismCount", result.config().elitismCount(), true);
-        appendJsonField(json, "seed", result.config().seed(), true);
-        appendJsonField(json, "javaVersion", System.getProperty("java.version"), true);
-        appendJsonField(json, "timestamp", timestamp.format(JSON_TIMESTAMP), false);
-        json.append("}\n");
-        Files.writeString(output, json.toString());
+        JsonWriter json = new JsonWriter()
+                .beginObject()
+                .field("inputFile", inputFile.toString())
+                .field("problemName", problem.config().name())
+                .field("populationSize", result.config().populationSize())
+                .field("generations", result.config().generations())
+                .field("mutationRate", result.config().mutationRate())
+                .field("tournamentSize", result.config().tournamentSize())
+                .field("elitismCount", result.config().elitismCount())
+                .field("seed", result.config().seed())
+                .field("javaVersion", System.getProperty("java.version"))
+                .field("timestamp", timestamp.format(JSON_TIMESTAMP))
+                .endObject();
+        Files.writeString(output, json.toJson());
     }
 
     private void writeProblemSummary(Path output, ItcProblemSummary summary) throws IOException {
-        StringBuilder json = new StringBuilder();
         RoomCapacitySummary capacity = summary.roomCapacity();
+        JsonWriter json = new JsonWriter()
+                .beginObject()
+                .field("problemName", summary.problemName())
+                .field("nrDays", summary.nrDays())
+                .field("nrWeeks", summary.nrWeeks())
+                .field("slotsPerDay", summary.slotsPerDay())
+                .field("roomCount", summary.roomCount())
+                .field("courseCount", summary.courseCount())
+                .field("configCount", summary.configCount())
+                .field("subpartCount", summary.subpartCount())
+                .field("classCount", summary.classCount())
+                .field("distributionCount", summary.distributionCount())
+                .field("studentCount", summary.studentCount())
+                .field("roomUnavailableCount", summary.roomUnavailableCount())
+                .field("classRoomOptionCount", summary.classRoomOptionCount())
+                .field("classTimeOptionCount", summary.classTimeOptionCount())
+                .name("roomCapacity")
+                .beginObject()
+                .field("minimum", capacity.minimum())
+                .field("maximum", capacity.maximum())
+                .field("average", capacity.average())
+                .endObject()
+                .field("classesWithNoRoomOptions", summary.classesWithNoRoomOptions())
+                .field("classesWithOneRoomOption", summary.classesWithOneRoomOption())
+                .field("classesWithMultipleRoomOptions", summary.classesWithMultipleRoomOptions())
+                .field("classesWithNoTimeOptions", summary.classesWithNoTimeOptions())
+                .field("classesWithOneTimeOption", summary.classesWithOneTimeOption())
+                .field("classesWithMultipleTimeOptions", summary.classesWithMultipleTimeOptions())
+                .name("distributionTypes")
+                .beginArray();
 
-        json.append("{\n");
-        appendJsonField(json, "problemName", summary.problemName(), true);
-        appendJsonField(json, "nrDays", summary.nrDays(), true);
-        appendJsonField(json, "nrWeeks", summary.nrWeeks(), true);
-        appendJsonField(json, "slotsPerDay", summary.slotsPerDay(), true);
-        appendJsonField(json, "roomCount", summary.roomCount(), true);
-        appendJsonField(json, "courseCount", summary.courseCount(), true);
-        appendJsonField(json, "configCount", summary.configCount(), true);
-        appendJsonField(json, "subpartCount", summary.subpartCount(), true);
-        appendJsonField(json, "classCount", summary.classCount(), true);
-        appendJsonField(json, "distributionCount", summary.distributionCount(), true);
-        appendJsonField(json, "studentCount", summary.studentCount(), true);
-        appendJsonField(json, "roomUnavailableCount", summary.roomUnavailableCount(), true);
-        appendJsonField(json, "classRoomOptionCount", summary.classRoomOptionCount(), true);
-        appendJsonField(json, "classTimeOptionCount", summary.classTimeOptionCount(), true);
-
-        json.append("  \"roomCapacity\": {\n");
-        appendJsonField(json, "minimum", capacity.minimum(), true, 4);
-        appendJsonField(json, "maximum", capacity.maximum(), true, 4);
-        appendJsonField(json, "average", capacity.average(), false, 4);
-        json.append("  },\n");
-
-        appendJsonField(json, "classesWithNoRoomOptions", summary.classesWithNoRoomOptions(), true);
-        appendJsonField(json, "classesWithOneRoomOption", summary.classesWithOneRoomOption(), true);
-        appendJsonField(json, "classesWithMultipleRoomOptions", summary.classesWithMultipleRoomOptions(), true);
-        appendJsonField(json, "classesWithNoTimeOptions", summary.classesWithNoTimeOptions(), true);
-        appendJsonField(json, "classesWithOneTimeOption", summary.classesWithOneTimeOption(), true);
-        appendJsonField(json, "classesWithMultipleTimeOptions", summary.classesWithMultipleTimeOptions(), true);
-
-        json.append("  \"distributionTypes\": [\n");
-        for (int i = 0; i < summary.distributionTypes().size(); i++) {
-            DistributionTypeSummary distributionType = summary.distributionTypes().get(i);
-            json.append("    {\n");
-            appendJsonField(json, "type", distributionType.type(), true, 6);
-            appendJsonField(json, "requiredCount", distributionType.requiredCount(), true, 6);
-            appendJsonField(json, "nonRequiredCount", distributionType.nonRequiredCount(), true, 6);
-            appendJsonField(json, "totalCount", distributionType.totalCount(), false, 6);
-            json.append("    }");
-            json.append(i + 1 < summary.distributionTypes().size() ? "," : "");
-            json.append("\n");
+        for (DistributionTypeSummary distributionType : summary.distributionTypes()) {
+            json.beginObject()
+                    .field("type", distributionType.type())
+                    .field("requiredCount", distributionType.requiredCount())
+                    .field("nonRequiredCount", distributionType.nonRequiredCount())
+                    .field("totalCount", distributionType.totalCount())
+                    .endObject();
         }
-        json.append("  ],\n");
 
-        json.append("  \"unsupportedOrUnknownDistributionTypes\": [");
-        for (int i = 0; i < summary.unsupportedOrUnknownDistributionTypes().size(); i++) {
-            if (i > 0) {
-                json.append(", ");
-            }
-            json.append(quote(summary.unsupportedOrUnknownDistributionTypes().get(i)));
+        json.endArray()
+                .name("unsupportedOrUnknownDistributionTypes")
+                .beginArray();
+        for (String type : summary.unsupportedOrUnknownDistributionTypes()) {
+            json.value(type);
         }
-        json.append("]\n");
-        json.append("}\n");
+        json.endArray()
+                .endObject();
 
-        Files.writeString(output, json.toString());
+        Files.writeString(output, json.toJson());
     }
 
     private void writeFinalFitnessBreakdown(Path output, FitnessResult fitness) throws IOException {
         FitnessBreakdown breakdown = fitness.breakdown();
-        StringBuilder json = new StringBuilder();
-        json.append("{\n");
-        appendJsonField(json, "totalScore", fitness.totalScore(), true);
-        appendJsonField(json, "hardViolationCount", fitness.hardViolationCount(), true);
-        appendJsonField(json, "softPenaltyTotal", fitness.softPenaltyTotal(), true);
-        appendJsonField(json, "timeChoicePenalty", breakdown.timeChoicePenalty(), true);
-        appendJsonField(json, "roomChoicePenalty", breakdown.roomChoicePenalty(), true);
-        appendJsonField(json, "roomConflictViolationCount", breakdown.roomConflictViolationCount(), true);
-        appendJsonField(json, "roomUnavailableViolationCount", breakdown.roomUnavailableViolationCount(), true);
-        appendJsonField(json, "requiredDistributionViolationCount", breakdown.requiredDistributionViolationCount(), true);
-        appendJsonField(json, "unsupportedRequiredDistributionCount", breakdown.unsupportedRequiredDistributionCount(), true);
-        appendJsonField(json, "unsupportedNonRequiredDistributionCount", breakdown.unsupportedNonRequiredDistributionCount(), true);
-        appendJsonField(json, "constraintReportCount", fitness.violations().size(), false);
-        json.append("}\n");
-        Files.writeString(output, json.toString());
+        JsonWriter json = new JsonWriter()
+                .beginObject()
+                .field("totalScore", fitness.totalScore())
+                .field("hardViolationCount", fitness.hardViolationCount())
+                .field("softPenaltyTotal", fitness.softPenaltyTotal())
+                .field("timeChoicePenalty", breakdown.timeChoicePenalty())
+                .field("roomChoicePenalty", breakdown.roomChoicePenalty())
+                .field("roomConflictViolationCount", breakdown.roomConflictViolationCount())
+                .field("roomUnavailableViolationCount", breakdown.roomUnavailableViolationCount())
+                .field("requiredDistributionViolationCount", breakdown.requiredDistributionViolationCount())
+                .field("unsupportedRequiredDistributionCount", breakdown.unsupportedRequiredDistributionCount())
+                .field("unsupportedNonRequiredDistributionCount", breakdown.unsupportedNonRequiredDistributionCount())
+                .field("constraintReportCount", fitness.violations().size())
+                .endObject();
+        Files.writeString(output, json.toJson());
     }
 
     private void writeConvergence(Path output, GAResult result) throws IOException {
@@ -229,51 +225,190 @@ public final class ExperimentRunOutputWriter {
         }
     }
 
-    private void appendJsonField(StringBuilder json, String name, String value, boolean trailingComma) {
-        appendJsonField(json, name, quote(value), trailingComma, 2);
-    }
-
-    private void appendJsonField(StringBuilder json, String name, long value, boolean trailingComma) {
-        appendJsonField(json, name, Long.toString(value), trailingComma, 2);
-    }
-
-    private void appendJsonField(StringBuilder json, String name, long value, boolean trailingComma, int indent) {
-        appendJsonField(json, name, Long.toString(value), trailingComma, indent);
-    }
-
-    private void appendJsonField(StringBuilder json, String name, double value, boolean trailingComma) {
-        appendJsonField(json, name, Double.toString(value), trailingComma, 2);
-    }
-
-    private void appendJsonField(StringBuilder json, String name, double value, boolean trailingComma, int indent) {
-        appendJsonField(json, name, Double.toString(value), trailingComma, indent);
-    }
-
-    private void appendJsonField(StringBuilder json, String name, String value, boolean trailingComma, int indent) {
-        json.append(" ".repeat(indent));
-        json.append(quote(name)).append(": ").append(value);
-        if (trailingComma) {
-            json.append(",");
-        }
-        json.append("\n");
-    }
-
-    private String quote(String value) {
-        String safeValue = value == null ? "" : value;
-        return "\"" + safeValue
-                .replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\r", "\\r")
-                .replace("\n", "\\n")
-                .replace("\t", "\\t")
-                + "\"";
-    }
-
     private String csv(String value) {
         String safeValue = value == null ? "" : value;
         if (safeValue.contains(",") || safeValue.contains("\"") || safeValue.contains("\n") || safeValue.contains("\r")) {
             return "\"" + safeValue.replace("\"", "\"\"") + "\"";
         }
         return safeValue;
+    }
+
+    private static final class JsonWriter {
+        private final StringBuilder json = new StringBuilder();
+        private final Deque<JsonContext> contexts = new ArrayDeque<>();
+        private int indent;
+        private boolean expectingFieldValue;
+
+        private JsonWriter beginObject() {
+            beforeValue();
+            json.append("{");
+            contexts.push(new JsonContext(JsonContextType.OBJECT));
+            indent += 2;
+            return this;
+        }
+
+        private JsonWriter endObject() {
+            endContext(JsonContextType.OBJECT, "}");
+            return this;
+        }
+
+        private JsonWriter beginArray() {
+            beforeValue();
+            json.append("[");
+            contexts.push(new JsonContext(JsonContextType.ARRAY));
+            indent += 2;
+            return this;
+        }
+
+        private JsonWriter endArray() {
+            endContext(JsonContextType.ARRAY, "]");
+            return this;
+        }
+
+        private JsonWriter name(String name) {
+            if (contexts.isEmpty() || contexts.peek().type != JsonContextType.OBJECT) {
+                throw new IllegalStateException("JSON field names can only be written inside objects.");
+            }
+            if (expectingFieldValue) {
+                throw new IllegalStateException("Previous JSON field has no value.");
+            }
+
+            JsonContext context = contexts.peek();
+            if (!context.first) {
+                json.append(",");
+            }
+            json.append("\n");
+            appendIndent();
+            appendQuoted(name);
+            json.append(": ");
+            context.first = false;
+            expectingFieldValue = true;
+            return this;
+        }
+
+        private JsonWriter field(String name, String value) {
+            return name(name).value(value);
+        }
+
+        private JsonWriter field(String name, long value) {
+            return name(name).number(Long.toString(value));
+        }
+
+        private JsonWriter field(String name, double value) {
+            if (!Double.isFinite(value)) {
+                throw new IllegalArgumentException("JSON numbers must be finite.");
+            }
+            return name(name).number(Double.toString(value));
+        }
+
+        private JsonWriter value(String value) {
+            beforeValue();
+            appendQuoted(value);
+            return this;
+        }
+
+        private JsonWriter number(String value) {
+            beforeValue();
+            json.append(value);
+            return this;
+        }
+
+        private String toJson() {
+            if (!contexts.isEmpty()) {
+                throw new IllegalStateException("JSON document has unclosed containers.");
+            }
+            if (expectingFieldValue) {
+                throw new IllegalStateException("JSON document has a field without a value.");
+            }
+            return json.toString() + "\n";
+        }
+
+        private void beforeValue() {
+            if (expectingFieldValue) {
+                expectingFieldValue = false;
+                return;
+            }
+            if (contexts.isEmpty()) {
+                return;
+            }
+
+            JsonContext context = contexts.peek();
+            if (context.type != JsonContextType.ARRAY) {
+                throw new IllegalStateException("Object values must be preceded by a field name.");
+            }
+            if (!context.first) {
+                json.append(",");
+            }
+            json.append("\n");
+            appendIndent();
+            context.first = false;
+        }
+
+        private void endContext(JsonContextType expectedType, String closingToken) {
+            if (contexts.isEmpty() || contexts.peek().type != expectedType) {
+                throw new IllegalStateException("JSON container nesting is invalid.");
+            }
+            if (expectingFieldValue) {
+                throw new IllegalStateException("JSON field has no value.");
+            }
+
+            JsonContext context = contexts.pop();
+            indent -= 2;
+            if (!context.first) {
+                json.append("\n");
+                appendIndent();
+            }
+            json.append(closingToken);
+        }
+
+        private void appendIndent() {
+            json.append(" ".repeat(indent));
+        }
+
+        private void appendQuoted(String value) {
+            String safeValue = value == null ? "" : value;
+            json.append("\"");
+            for (int i = 0; i < safeValue.length(); i++) {
+                char ch = safeValue.charAt(i);
+                switch (ch) {
+                    case '\\' -> json.append("\\\\");
+                    case '\"' -> json.append("\\\"");
+                    case '\b' -> json.append("\\b");
+                    case '\f' -> json.append("\\f");
+                    case '\n' -> json.append("\\n");
+                    case '\r' -> json.append("\\r");
+                    case '\t' -> json.append("\\t");
+                    default -> {
+                        if (ch <= 0x1F) {
+                            appendUnicodeEscape(ch);
+                        } else {
+                            json.append(ch);
+                        }
+                    }
+                }
+            }
+            json.append("\"");
+        }
+
+        private void appendUnicodeEscape(char ch) {
+            json.append("\\u");
+            String hex = Integer.toHexString(ch);
+            json.append("0".repeat(4 - hex.length()));
+            json.append(hex);
+        }
+    }
+
+    private enum JsonContextType {
+        OBJECT,
+        ARRAY
+    }
+
+    private static final class JsonContext {
+        private final JsonContextType type;
+        private boolean first = true;
+
+        private JsonContext(JsonContextType type) {
+            this.type = type;
+        }
     }
 }

@@ -20,7 +20,7 @@ public final class AppRunSettings {
     /*
      * Change only this line most of the time.
      */
-    public static final RunProfile ACTIVE_PROFILE = RunProfile.BASELINE_MEDIUM;
+    public static final RunProfile ACTIVE_PROFILE = RunProfile.BASELINE_LONG;
 
     public enum RunProfile {
 

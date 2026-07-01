@@ -29,7 +29,18 @@ public final class App {
     }
 
     public static void main(String[] args) {
-        System.exit(run(args, System.out, System.err));
+        String[] effectiveArgs = args;
+
+        if (com.gadynamicapp.itc.config.AppRunSettings.USE_SETTINGS_WHEN_NO_ARGUMENTS
+                && args.length == 0) {
+            effectiveArgs = com.gadynamicapp.itc.config.AppRunSettings.toCliArgs();
+
+            System.out.println("Using AppRunSettings because no command-line arguments were provided.");
+            System.out.println(com.gadynamicapp.itc.config.AppRunSettings.describe());
+            System.out.println();
+        }
+
+        System.exit(run(effectiveArgs, System.out, System.err));
     }
 
     static int run(String[] args, PrintStream out, PrintStream err) {
